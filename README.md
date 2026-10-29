@@ -2,8 +2,6 @@
 
 # Keybound Brawler Helper
 
-[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/kewiv)
-
 Dalamud plugin for the **Keybound Brawler** Gold Saucer event (FFXIV × FFVII Remake).
 
 > ⚠️ Auto-play is against the FFXIV Terms of Service. Use at your own risk.
@@ -14,7 +12,7 @@ Dalamud plugin for the **Keybound Brawler** Gold Saucer event (FFXIV × FFVII Re
 2. Add this URL, tick it, and save:
 
    ```
-   https://raw.githubusercontent.com/KEWI-hub/KeyboundBrawler/main/repo.json
+   https://raw.githubusercontent.com/blackappleD/DalamudPlugins/main/repo.json
    ```
 
 3. `/xlplugins` → search **Keybound Brawler Helper** → Install

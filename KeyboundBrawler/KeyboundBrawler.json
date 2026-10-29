@@ -1,5 +1,5 @@
 {
-  "Author": "KEWI",
+  "Author": "KEWI, blackappleD",
   "Name": "Keybound Brawler Helper",
   "Punchline": "Auto-play and MGC tracker for the Keybound Brawler Gold Saucer event.",
   "Description": "Reads the enemy words in Keybound Brawler and types them for you at a human pace, opens the input box, pauses on no-typing casts and remembers obscured boss words. Also tracks MGC and plans event rewards. /kbb opens the window, /kbb auto toggles auto-play.\n\nAuto-play is against the FFXIV Terms of Service. Use at your own risk.",
