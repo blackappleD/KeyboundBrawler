@@ -68,6 +68,7 @@ public class Configuration : IPluginConfiguration
     // Buy the wanted rewards as soon as the walk opens the shop.
     public bool AutoBuy { get; set; }
     public bool HideOwnedRewards { get; set; }
+    public Language Language { get; set; } = Language.Auto;
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 }
@@ -87,10 +88,10 @@ public static class TypingSpeedInfo
 
     public static string Label(this TypingSpeed speed) => speed switch
     {
-        TypingSpeed.Human => "Human",
+        TypingSpeed.Human => Loc.T("Human"),
         TypingSpeed.Dev => "DEV",
-        TypingSpeed.Monkey => "Monkey",
+        TypingSpeed.Monkey => Loc.T("Monkey"),
         TypingSpeed.Kewi => "KEWI",
-        _ => "Custom",
+        _ => Loc.T("Custom"),
     };
 }

@@ -50,8 +50,8 @@ public sealed unsafe class ShopBuyer : IDisposable
         queue.Clear();
         foreach (var r in Rewards.All.Where(r => cfg.Wanted.Contains(r.Name) && !cfg.Owned.Contains(r.Name)).OrderBy(r => r.Cost))
             queue.Enqueue(r);
-        if (queue.Count == 0) { Status = "Nothing to buy: tick Want on some rewards."; return; }
-        if (Shop() == null) { Status = "Open the MGC Trader's shop first."; return; }
+        if (queue.Count == 0) { Status = Loc.T("Nothing to buy: tick Want on some rewards."); return; }
+        if (Shop() == null) { Status = Loc.T("Open the MGC Trader's shop first."); return; }
         Next();
     }
 
@@ -90,7 +90,7 @@ public sealed unsafe class ShopBuyer : IDisposable
                 var row = FindRow(shop, current!.Name);
                 if (row < 0) { Skip($"{current.Name} is not in the shop (already owned?)."); break; }
                 mgcBefore = UInt(shop, MgcValue);
-                if (mgcBefore < current.Cost) { Finish($"Not enough MGC for {current.Name} ({mgcBefore}/{current.Cost})."); break; }
+                if (mgcBefore < current.Cost) { Finish("Not enough MGC for {0} ({1}/{2}).", current.Name, mgcBefore, current.Cost); break; }
                 Fire(shop, 0, (int)UInt(shop, FirstShopIndexValue + row), 1);
                 SetStep(Step.Confirm);
                 break;
@@ -122,7 +122,7 @@ public sealed unsafe class ShopBuyer : IDisposable
                 }
                 else if (elapsed > 4000)
                 {
-                    Fail($"MGC did not go down after buying {current!.Name}.");
+                    Fail("MGC did not go down after buying {0}.", current!.Name);
                 }
                 break;
         }
@@ -133,7 +133,7 @@ public sealed unsafe class ShopBuyer : IDisposable
         if (queue.Count == 0) { Finish("All wanted rewards bought."); return; }
         current = queue.Dequeue();
         tabRequested = false;
-        Status = $"Buying {current.Name}";
+        Status = Loc.T("Buying {0}", current.Name);
         SetStep(Step.SwitchTab);
     }
 
@@ -143,18 +143,20 @@ public sealed unsafe class ShopBuyer : IDisposable
         Next();
     }
 
-    private void Fail(string why)
+    private void Fail(string why, params object[] args)
     {
         UiScanner.DumpToFile("buy_fail");
-        Finish(why + " Saved a dump.");
+        Finish(why, args);
+        Status += Loc.T(" Saved a dump.");
     }
 
-    private void Finish(string why)
+    // Status follows the plugin language; the log stays English for bug reports.
+    private void Finish(string why, params object[] args)
     {
         step = Step.Idle;
         current = null;
-        Status = why;
-        Plugin.Log.Info($"[shop] {why}");
+        Status = Loc.T(why, args);
+        Plugin.Log.Info($"[shop] {string.Format(why, args)}");
     }
 
     private void SetStep(Step next)

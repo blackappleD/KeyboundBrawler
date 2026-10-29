@@ -49,7 +49,7 @@ public sealed class AutoPlayer : IDisposable
     private DateTime nextAction = DateTime.MinValue;
 
     public bool Enabled { get; set; }
-    private string status = "Off";
+    private string status = Loc.T("Off");
 
     // Logged on change, since the window cannot be watched easily during a match.
     public string Status
@@ -86,7 +86,7 @@ public sealed class AutoPlayer : IDisposable
     {
         Enabled = !Enabled;
         ResetTyping();
-        Status = Enabled ? "Waiting for the minigame" : "Off";
+        Status = Loc.T(Enabled ? "Waiting for the minigame" : "Off");
     }
 
     private void OnUpdate(IFramework framework)
@@ -104,7 +104,7 @@ public sealed class AutoPlayer : IDisposable
             Words.MatchOver();
             hiddenDumps = 0;
             boxClosed = true;
-            Status = "Waiting for the minigame";
+            Status = Loc.T("Waiting for the minigame");
             return;
         }
 
@@ -119,7 +119,7 @@ public sealed class AutoPlayer : IDisposable
         if (!GameInput.SafeToType())
         {
             mismatchSince = null;
-            Status = "Paused: another text box has focus";
+            Status = Loc.T("Paused: another text box has focus");
             return;
         }
 
@@ -127,7 +127,7 @@ public sealed class AutoPlayer : IDisposable
         if (noTypingSign)
         {
             mismatchSince = null;
-            Status = "Paused: no-typing sign";
+            Status = Loc.T("Paused: no-typing sign");
             return;
         }
 
@@ -147,7 +147,7 @@ public sealed class AutoPlayer : IDisposable
                 Words.Dropped(typing, typingKey, typingHidden, typingFixes);
                 for (var i = 0; i < typedCount; i++) KeySender.Backspace();
                 ResetTyping();
-                Status = "Word gone, clearing what we typed";
+                Status = Loc.T("Word gone, clearing what we typed");
                 Delay(OpenBoxDelayMs);
                 return;
             }
@@ -159,7 +159,7 @@ public sealed class AutoPlayer : IDisposable
             var next = LastTargets.FirstOrDefault(t => !RecentlySent(t.Text, now));
             if (next.Text == null)
             {
-                Status = "No word to type";
+                Status = Loc.T("No word to type");
                 return;
             }
             typing = next.Text;
@@ -172,7 +172,7 @@ public sealed class AutoPlayer : IDisposable
             {
                 KeySender.Enter();
                 boxClosed = false;
-                Status = "Opening the input box";
+                Status = Loc.T("Opening the input box");
                 Delay(OpenBoxDelayMs);
                 return;
             }
@@ -181,7 +181,7 @@ public sealed class AutoPlayer : IDisposable
         if (typedCount < keys.Length)
         {
             KeySender.Char(keys[typedCount++]);
-            Status = $"Typing \"{typing}\"";
+            Status = Loc.T("Typing \"{0}\"", typing);
             Delay(cfg.WordSeconds > 0 ? (int)(cfg.WordSeconds * 1000 / (keys.Length + 1)) : cfg.CharDelayMs);
             return;
         }
@@ -190,7 +190,7 @@ public sealed class AutoPlayer : IDisposable
         boxClosed = true;
         recentlySent[typing] = now;
         Words.Sent(typing, typingKey, typingHidden, typingFixes);
-        Status = $"Sent \"{typing}\"";
+        Status = Loc.T("Sent \"{0}\"", typing);
         ResetTyping();
         Delay(cfg.WordDelayMs);
     }
@@ -217,14 +217,14 @@ public sealed class AutoPlayer : IDisposable
             // Leftover or wrong text: wipe it and start this word again. Never Esc, that quits on an empty box.
             for (var i = 0; i < input.Length; i++) KeySender.Backspace();
             if (typing != null) typingFixes++;
-            Status = "Clearing the input box";
+            Status = Loc.T("Clearing the input box");
         }
         else
         {
             // We typed but nothing showed up: the box is closed.
             KeySender.Enter();
             boxClosed = false;
-            Status = "Opening the input box (after a lost key)";
+            Status = Loc.T("Opening the input box (after a lost key)");
         }
         typedCount = 0;
         Delay(OpenBoxDelayMs);

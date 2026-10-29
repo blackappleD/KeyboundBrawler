@@ -64,7 +64,7 @@ public sealed class VendorRunner : IDisposable
             .FirstOrDefault();
         if (target == null)
         {
-            Status = "Target the MGC vendor first.";
+            Status = Loc.T("Target the MGC vendor first.");
             return;
         }
         var cfg = plugin.Config;
@@ -73,27 +73,27 @@ public sealed class VendorRunner : IDisposable
         cfg.VendorPosition = target.Position;
         cfg.VendorTerritory = (ushort)Plugin.ClientState.TerritoryType;
         cfg.Save();
-        Status = $"Vendor saved: {cfg.VendorName}";
+        Status = Loc.T("Vendor saved: {0}", cfg.VendorName);
     }
 
     public void Start()
     {
         var cfg = plugin.Config;
         if (cfg.VendorBaseId == 0) RememberTarget();
-        if (cfg.VendorBaseId == 0) { Status = "No vendor saved yet. Target the MGC Trader once."; return; }
-        if ((ushort)Plugin.ClientState.TerritoryType != cfg.VendorTerritory) { Status = "Go to the Gold Saucer first."; return; }
+        if (cfg.VendorBaseId == 0) { Status = Loc.T("No vendor saved yet. Target the MGC Trader once."); return; }
+        if ((ushort)Plugin.ClientState.TerritoryType != cfg.VendorTerritory) { Status = Loc.T("Go to the Gold Saucer first."); return; }
 
         if (DistanceToVendor() <= TalkRange)
         {
             SetStep(Step.Talking, "Talking to the vendor");
             return;
         }
-        if (!VnavmeshInstalled) { Status = "vnavmesh is not installed or not loaded."; return; }
-        if (!TryIpc(() => navIsReady.InvokeFunc())) { Status = "vnavmesh is still building the map, try again in a moment."; return; }
+        if (!VnavmeshInstalled) { Status = Loc.T("vnavmesh is not installed or not loaded."); return; }
+        if (!TryIpc(() => navIsReady.InvokeFunc())) { Status = Loc.T("vnavmesh is still building the map, try again in a moment."); return; }
 
         if (!TryIpc(() => pathfindAndMoveTo.InvokeFunc(cfg.VendorPosition, false)))
         {
-            Status = "vnavmesh could not path to the vendor.";
+            Status = Loc.T("vnavmesh could not path to the vendor.");
             return;
         }
         SetStep(Step.Walking, "Walking to the vendor");
@@ -121,7 +121,7 @@ public sealed class VendorRunner : IDisposable
                 else if (elapsed > WalkTimeout)
                 {
                     Stop();
-                    Status = "Took too long to reach the vendor.";
+                    Status = Loc.T("Took too long to reach the vendor.");
                 }
                 else if (elapsed > TimeSpan.FromSeconds(2) &&
                          !TryIpc(() => pathIsRunning.InvokeFunc()) && !TryIpc(() => pathfindInProgress.InvokeFunc()))
@@ -188,7 +188,7 @@ public sealed class VendorRunner : IDisposable
     {
         step = next;
         stepStarted = DateTime.UtcNow;
-        Status = status;
+        Status = Loc.T(status);
         Plugin.Log.Info($"[vendor] {status}");
     }
 

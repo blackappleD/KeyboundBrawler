@@ -18,6 +18,8 @@ Dalamud plugin for the **Keybound Brawler** Gold Saucer event (FFXIV × FFVII Re
 3. `/xlplugins` → search **Keybound Brawler Helper** → Install
 4. `/kbb` opens the window, `/kbb auto` toggles auto-play, `/kbb debug` shows the UI scanner
 
+The window is in English or Simplified Chinese: **Settings** → **Language** (Auto follows Dalamud's language).
+
 Chat and commands are blocked inside the minigame, so set things up before entering.
 Tick **Start auto-play when a match begins** and it starts and stops by itself.
 

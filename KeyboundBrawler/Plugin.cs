@@ -2,9 +2,12 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Dalamud;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
+using Dalamud.Interface;
+using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -38,6 +41,9 @@ public sealed class Plugin : IDalamudPlugin
     public ShopBuyer Shop { get; }
     public ShopRecorder Recorder { get; }
     private readonly AfkGuard afkGuard;
+
+    // Default font plus the Chinese glyphs the translation uses, for when Dalamud itself is not in Chinese.
+    public IFontHandle CjkFont { get; }
 
     // "/kbb debug" shows the UI scanner, which normal players do not need.
     public bool ShowDebug { get; set; }
@@ -103,6 +109,17 @@ public sealed class Plugin : IDalamudPlugin
         Config.DangerCasts = Config.DangerCasts.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         Config.UrgentCasts = Config.UrgentCasts.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         mgcRegex = BuildRegex(Config.MgcPattern);
+        Loc.Apply(Config.Language);
+        CjkFont = PluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e => e.OnPreBuild(tk =>
+        {
+            var font = tk.AddDalamudDefaultFont(UiBuilder.DefaultFontSizePx);
+            tk.AddDalamudAssetFont(DalamudAsset.NotoSansCjkMedium, new SafeFontConfig
+            {
+                SizePx = UiBuilder.DefaultFontSizePx,
+                MergeFont = font,
+                GlyphRanges = Loc.GlyphRanges(),
+            });
+        }));
         AutoPlayer = new AutoPlayer(this);
         MatchWatcher = new MatchWatcher(this);
         Vendor = new VendorRunner(this);
@@ -115,17 +132,20 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(Command, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Open the Keybound Brawler tracker. /kbb auto toggles auto-play.",
+            HelpMessage = Loc.T("Open the Keybound Brawler tracker. /kbb auto toggles auto-play."),
         });
 
         PluginInterface.UiBuilder.Draw += windowSystem.Draw;
         PluginInterface.UiBuilder.OpenMainUi += mainWindow.Toggle;
         PluginInterface.UiBuilder.OpenConfigUi += mainWindow.Toggle;
         ChatGui.ChatMessage += OnChatMessage;
+        PluginInterface.LanguageChanged += OnLanguageChanged;
     }
 
     public void Dispose()
     {
+        PluginInterface.LanguageChanged -= OnLanguageChanged;
+        CjkFont.Dispose();
         afkGuard.Dispose();
         Recorder.Dispose();
         Shop.Dispose();
@@ -147,6 +167,16 @@ public sealed class Plugin : IDalamudPlugin
         Config.Save();
     }
 
+    public void SetLanguage(Language language)
+    {
+        Config.Language = language;
+        Config.Save();
+        Loc.Apply(language);
+    }
+
+    // "Auto" follows Dalamud, so pick up a change of its UI language.
+    private void OnLanguageChanged(string langCode) => Loc.Apply(Config.Language);
+
     private void OnCommand(string command, string args)
     {
         if (args.Trim().Equals("debug", StringComparison.OrdinalIgnoreCase))
@@ -158,7 +188,7 @@ public sealed class Plugin : IDalamudPlugin
         if (args.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase))
         {
             AutoPlayer.Toggle();
-            ChatGui.Print($"[Keybound Brawler] Auto-play {(AutoPlayer.Enabled ? "on" : "off")}");
+            ChatGui.Print($"[Keybound Brawler] {Loc.T(AutoPlayer.Enabled ? "Auto-play on" : "Auto-play off")}");
             return;
         }
         mainWindow.Toggle();

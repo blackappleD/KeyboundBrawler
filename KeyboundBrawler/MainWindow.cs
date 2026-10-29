@@ -30,6 +30,7 @@ public sealed class MainWindow : Window
     private string? dumpResult;
     private int pushedColors;
     private int pushedVars;
+    private IDisposable? pushedFont;
 
     public MainWindow(Plugin plugin) : base("Keybound Brawler Helper###kbb")
     {
@@ -70,10 +71,14 @@ public sealed class MainWindow : Window
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(14, 12));
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(8, 8));
         pushedVars = 8;
+
+        if (Loc.Chinese && plugin.CjkFont.Available) pushedFont = plugin.CjkFont.Push();
     }
 
     public override void PostDraw()
     {
+        pushedFont?.Dispose();
+        pushedFont = null;
         ImGui.PopStyleVar(pushedVars);
         ImGui.PopStyleColor(pushedColors);
     }
@@ -90,14 +95,14 @@ public sealed class MainWindow : Window
         DrawMgcProgress(cfg);
 
         ImGui.Spacing();
-        if (ImGui.CollapsingHeader("Rewards"))
+        if (ImGui.CollapsingHeader(Loc.T("Rewards") + "###rewards"))
         {
             DrawVendor(cfg);
             DrawRewards(cfg);
         }
-        if (ImGui.CollapsingHeader("Word log"))
+        if (ImGui.CollapsingHeader(Loc.T("Word log") + "###words"))
             DrawWordLog();
-        if (ImGui.CollapsingHeader("Settings"))
+        if (ImGui.CollapsingHeader(Loc.T("Settings") + "###settings"))
             DrawSettings(cfg);
         if (plugin.ShowDebug && ImGui.CollapsingHeader("UI scanner (debug)"))
             DrawScanner(cfg);
@@ -116,8 +121,8 @@ public sealed class MainWindow : Window
         // The title bar already names the plugin, so the header says what is going on.
         var auto = plugin.AutoPlayer;
         var watcher = plugin.MatchWatcher;
-        var headline = auto.Enabled ? (watcher.InMatch ? "Typing for you" : "Ready, waiting for a match") : "Auto-play is off";
-        var sub = watcher.InMatch ? "In a Keybound Brawler match" : "At the Gold Saucer";
+        var headline = Loc.T(auto.Enabled ? (watcher.InMatch ? "Typing for you" : "Ready, waiting for a match") : "Auto-play is off");
+        var sub = Loc.T(watcher.InMatch ? "In a Keybound Brawler match" : "At the Gold Saucer");
         ImGui.BeginGroup();
         ImGui.Dummy(new Vector2(0, 4));
         ImGui.SetWindowFontScale(1.3f);
@@ -133,8 +138,8 @@ public sealed class MainWindow : Window
         if (!auto.Enabled || auto.CurrentWord == null)
         {
             var next = auto.LastTargets.Take(4).Select(t => t.Text).ToList();
-            ImGui.TextDisabled(next.Count > 0 ? "On screen: " + string.Join(" · ", next)
-                : auto.Enabled ? auto.Status : "Press Start, or tick \"Start when a match begins\".");
+            ImGui.TextDisabled(next.Count > 0 ? Loc.T("On screen: ") + string.Join(" · ", next)
+                : auto.Enabled ? auto.Status : Loc.T("Press Start, or tick \"Start when a match begins\"."));
             return;
         }
         ImGui.BeginChild("card", new Vector2(-1, 70), true);
@@ -142,19 +147,19 @@ public sealed class MainWindow : Window
         var word = auto.CurrentWord;
         if (auto.Enabled && word != null)
         {
-            ImGui.TextUnformatted("Typing");
+            ImGui.TextUnformatted(Loc.T("Typing"));
             ImGui.SameLine();
             ImGui.TextColored(Orange, word);
             DrawKeyCaps(auto.CurrentKeys, auto.TypedCount);
         }
         else
         {
-            ImGui.TextUnformatted(auto.Enabled ? auto.Status : "Auto-play is off");
+            ImGui.TextUnformatted(auto.Enabled ? auto.Status : Loc.T("Auto-play is off"));
             var next = auto.LastTargets.Take(5).Select(t => t.Text).ToList();
             if (next.Count > 0)
-                ImGui.TextDisabled("On screen: " + string.Join(" · ", next));
+                ImGui.TextDisabled(Loc.T("On screen: ") + string.Join(" · ", next));
             else
-                ImGui.TextDisabled("Tick \"Start when a match begins\" and queue up.");
+                ImGui.TextDisabled(Loc.T("Tick \"Start when a match begins\" and queue up."));
         }
 
         ImGui.EndChild();
@@ -193,7 +198,7 @@ public sealed class MainWindow : Window
             var selected = cfg.Speed == speed;
             if (selected) ImGui.PushStyleColor(ImGuiCol.Button, Pink);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 12f);
-            if (ImGui.Button($"{speed.Label()} {speed.Wpm()}##speed"))
+            if (ImGui.Button($"{speed.Label()} {speed.Wpm()}###speed{speed}"))
             {
                 cfg.ApplySpeed(speed);
                 cfg.Save();
@@ -202,7 +207,7 @@ public sealed class MainWindow : Window
             if (selected) ImGui.PopStyleColor();
             ImGui.SameLine();
         }
-        ImGui.TextDisabled(cfg.Speed == TypingSpeed.Custom ? "custom" : "wpm");
+        ImGui.TextDisabled(cfg.Speed == TypingSpeed.Custom ? Loc.T("custom") : "wpm");
     }
 
     private void DrawStartButton()
@@ -212,7 +217,7 @@ public sealed class MainWindow : Window
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, auto.Enabled ? PinkHover : OrangeHover);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 2f);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 12f);
-        if (ImGui.Button(auto.Enabled ? "Stop typing" : "Start typing", new Vector2(-1, 40)))
+        if (ImGui.Button(Loc.T(auto.Enabled ? "Stop typing" : "Start typing") + "###start", new Vector2(-1, 40)))
             auto.Toggle();
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(2);
@@ -221,10 +226,10 @@ public sealed class MainWindow : Window
     private static void DrawQuickToggles(Configuration cfg)
     {
         var autoStart = cfg.AutoStart;
-        if (ImGui.Checkbox("Start when a match begins", ref autoStart)) { cfg.AutoStart = autoStart; cfg.Save(); }
+        if (ImGui.Checkbox(Loc.T("Start when a match begins") + "###autostart", ref autoStart)) { cfg.AutoStart = autoStart; cfg.Save(); }
         ImGui.SameLine();
         var skip = cfg.SkipOptionalPunctuation;
-        if (ImGui.Checkbox("Skip ? ! - '", ref skip)) { cfg.SkipOptionalPunctuation = skip; cfg.Save(); }
+        if (ImGui.Checkbox(Loc.T("Skip ? ! - '") + "###skippunct", ref skip)) { cfg.SkipOptionalPunctuation = skip; cfg.Save(); }
     }
 
     // Shows the next reward to save for (cheapest wanted one), then the whole wish list in one line.
@@ -233,48 +238,48 @@ public sealed class MainWindow : Window
         var goal = Rewards.All.Where(r => cfg.Wanted.Contains(r.Name) && !cfg.Owned.Contains(r.Name)).OrderBy(r => r.Cost).ToList();
         if (goal.Count == 0)
         {
-            ImGui.TextDisabled($"{cfg.CurrentMgc} MGC. Tick Want on rewards to set a goal.");
+            ImGui.TextDisabled(Loc.T("{0} MGC. Tick Want on rewards to set a goal.", cfg.CurrentMgc));
             return;
         }
 
         var next = goal[0];
         var avg = AveragePerRun(cfg);
         var amount = $"{cfg.CurrentMgc} / {next.Cost}";
-        ImGui.TextUnformatted($"Next: {next.Name}");
+        ImGui.TextUnformatted(Loc.T("Next: {0}", next.Name));
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize(amount).X);
         ImGui.TextUnformatted(amount);
         ImGui.ProgressBar(Math.Min(1f, cfg.CurrentMgc / (float)next.Cost), new Vector2(-1, 10), "");
 
         var shortfall = next.Cost - cfg.CurrentMgc;
-        var nextLine = shortfall <= 0 ? "You can buy it now." : avg > 0 ? $"{shortfall} MGC to go, about {Math.Ceiling(shortfall / avg)} runs." : $"{shortfall} MGC to go.";
-        ImGui.TextDisabled($"{nextLine} Wish list: {goal.Count} rewards, {goal.Sum(r => r.Cost)} MGC.");
+        var nextLine = shortfall <= 0 ? Loc.T("You can buy it now.") : avg > 0 ? Loc.T("{0} MGC to go, about {1} runs.", shortfall, Math.Ceiling(shortfall / avg)) : Loc.T("{0} MGC to go.", shortfall);
+        ImGui.TextDisabled(Loc.T("{0} Wish list: {1} rewards, {2} MGC.", nextLine, goal.Count, goal.Sum(r => r.Cost)));
     }
 
     private void DrawVendor(Configuration cfg)
     {
         var vendor = plugin.Vendor;
-        ImGui.TextUnformatted(cfg.VendorBaseId == 0 ? "Vendor: not set" : $"Vendor: {cfg.VendorName}");
+        ImGui.TextUnformatted(cfg.VendorBaseId == 0 ? Loc.T("Vendor: not set") : Loc.T("Vendor: {0}", cfg.VendorName));
         ImGui.SameLine();
-        if (ImGui.SmallButton("Use my target"))
+        if (ImGui.SmallButton(Loc.T("Use my target") + "###usetarget"))
             vendor.RememberTarget();
 
         var shop = plugin.Shop;
         if (vendor.Busy || shop.Busy)
         {
-            if (ImGui.Button("Stop", new Vector2(-1, 30))) { vendor.Stop(); shop.Stop(); }
+            if (ImGui.Button(Loc.T("Stop") + "###vendor", new Vector2(-1, 30))) { vendor.Stop(); shop.Stop(); }
         }
         else if (ShopBuyer.ShopOpen)
         {
-            if (ImGui.Button("Buy wanted rewards now", new Vector2(-1, 30))) shop.Start();
+            if (ImGui.Button(Loc.T("Buy wanted rewards now") + "###vendor", new Vector2(-1, 30))) shop.Start();
         }
         else
         {
-            if (ImGui.Button(cfg.AutoBuy ? "Walk to vendor and buy" : "Walk to vendor and open shop", new Vector2(-1, 30))) vendor.Start();
+            if (ImGui.Button(Loc.T(cfg.AutoBuy ? "Walk to vendor and buy" : "Walk to vendor and open shop") + "###vendor", new Vector2(-1, 30))) vendor.Start();
         }
         var autoBuy = cfg.AutoBuy;
-        if (ImGui.Checkbox("Buy wanted rewards when the shop opens", ref autoBuy)) { cfg.AutoBuy = autoBuy; cfg.Save(); }
+        if (ImGui.Checkbox(Loc.T("Buy wanted rewards when the shop opens") + "###autobuy", ref autoBuy)) { cfg.AutoBuy = autoBuy; cfg.Save(); }
         if (!VendorRunner.VnavmeshInstalled)
-            ImGui.TextDisabled("Needs the vnavmesh plugin to walk (talking works without it when you stand close).");
+            ImGui.TextDisabled(Loc.T("Needs the vnavmesh plugin to walk (talking works without it when you stand close)."));
         if (vendor.Status.Length > 0)
             ImGui.TextDisabled(vendor.Status);
         if (shop.Status.Length > 0)
@@ -289,24 +294,25 @@ public sealed class MainWindow : Window
         var misses = log.Count(WordResult.Miss);
         var dropped = log.Count(WordResult.Dropped);
         var judged = hits + misses;
-        var rate = judged > 0 ? $"{100.0 * hits / judged:0}% landed" : "nothing judged yet";
-        ImGui.TextUnformatted($"{hits} hit · {misses} missed · {dropped} dropped · {log.Fixes} typos fixed · {rate}");
-        ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize("Clear").X - ImGui.GetStyle().FramePadding.X * 2);
-        if (ImGui.SmallButton("Clear##words")) log.Clear();
-        ImGui.TextDisabled("Hit: the enemy took it. Missed: still on screen after Enter. Dropped: gone before it was finished.");
+        var rate = judged > 0 ? Loc.T("{0}% landed", $"{100.0 * hits / judged:0}") : Loc.T("nothing judged yet");
+        ImGui.TextUnformatted(Loc.T("{0} hit · {1} missed · {2} dropped · {3} typos fixed · {4}", hits, misses, dropped, log.Fixes, rate));
+        var clear = Loc.T("Clear");
+        ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize(clear).X - ImGui.GetStyle().FramePadding.X * 2);
+        if (ImGui.SmallButton(clear + "###clearwords")) log.Clear();
+        ImGui.TextDisabled(Loc.T("Hit: the enemy took it. Missed: still on screen after Enter. Dropped: gone before it was finished."));
 
         if (log.Entries.Count == 0)
         {
-            ImGui.TextDisabled("No words yet. Start auto-play in a match.");
+            ImGui.TextDisabled(Loc.T("No words yet. Start auto-play in a match."));
             return;
         }
 
         if (!ImGui.BeginTable("words", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.ScrollY, new Vector2(0, 240)))
             return;
         ImGui.TableSetupScrollFreeze(0, 1);
-        ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Word", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Result", ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.T("Time"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.T("Word"), ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn(Loc.T("Result"), ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableHeadersRow();
 
         for (var i = log.Entries.Count - 1; i >= 0; i--)
@@ -320,14 +326,14 @@ public sealed class MainWindow : Window
             if (e.Hidden || e.Fixes > 0)
             {
                 ImGui.SameLine();
-                ImGui.TextDisabled(string.Join(", ", new[] { e.Hidden ? "hidden" : null, e.Fixes > 0 ? $"{e.Fixes} typo{(e.Fixes > 1 ? "s" : "")} fixed" : null }.Where(s => s != null)));
+                ImGui.TextDisabled(string.Join(", ", new[] { e.Hidden ? Loc.T("hidden") : null, e.Fixes > 0 ? Loc.T(e.Fixes > 1 ? "{0} typos fixed" : "{0} typo fixed", e.Fixes) : null }.Where(s => s != null)));
             }
             ImGui.TableNextColumn();
             switch (e.Result)
             {
-                case WordResult.Hit: ImGui.TextColored(Good, "Hit"); break;
-                case WordResult.Miss: ImGui.TextColored(Orange, "Missed"); break;
-                case WordResult.Dropped: ImGui.TextDisabled("Dropped"); break;
+                case WordResult.Hit: ImGui.TextColored(Good, Loc.T("Hit")); break;
+                case WordResult.Miss: ImGui.TextColored(Orange, Loc.T("Missed")); break;
+                case WordResult.Dropped: ImGui.TextDisabled(Loc.T("Dropped")); break;
                 default: ImGui.TextDisabled("..."); break;
             }
         }
@@ -337,15 +343,15 @@ public sealed class MainWindow : Window
     private void DrawRewards(Configuration cfg)
     {
         var hideOwned = cfg.HideOwnedRewards;
-        if (ImGui.Checkbox("Hide rewards I already have", ref hideOwned)) { cfg.HideOwnedRewards = hideOwned; cfg.Save(); }
+        if (ImGui.Checkbox(Loc.T("Hide rewards I already have") + "###hideowned", ref hideOwned)) { cfg.HideOwnedRewards = hideOwned; cfg.Save(); }
 
         // No inner scroll: the whole list shows and the window scrolls, so no row hides under the header.
         if (!ImGui.BeginTable("rewards", 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
             return;
 
-        ImGui.TableSetupColumn("Want", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Got", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn("Reward", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn(Loc.T("Want"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.T("Got"), ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Loc.T("Reward"), ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("MGC", ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableHeadersRow();
 
@@ -391,66 +397,76 @@ public sealed class MainWindow : Window
     {
         var changed = false;
 
+        Section(Loc.T("Language"));
+        ImGui.SetNextItemWidth(200);
+        if (ImGui.BeginCombo("##language", cfg.Language.Label()))
+        {
+            foreach (var language in Enum.GetValues<Language>())
+                if (ImGui.Selectable(language.Label(), cfg.Language == language))
+                    plugin.SetLanguage(language);
+            ImGui.EndCombo();
+        }
+
         Section("MGC");
         var mgc = cfg.CurrentMgc;
         ImGui.SetNextItemWidth(140);
-        if (ImGui.InputInt("held (updates from the shop)", ref mgc, 10, 100)) { cfg.CurrentMgc = Math.Max(0, mgc); changed = true; }
-        ImGui.TextDisabled($"This session {plugin.SessionRuns} runs / {plugin.SessionMgc} MGC");
-        ImGui.TextDisabled($"All time {cfg.TotalRuns} runs / {cfg.TotalMgcEarned} MGC, best run {cfg.BestRunMgc}");
+        if (ImGui.InputInt(Loc.T("held (updates from the shop)") + "###mgc", ref mgc, 10, 100)) { cfg.CurrentMgc = Math.Max(0, mgc); changed = true; }
+        ImGui.TextDisabled(Loc.T("This session {0} runs / {1} MGC", plugin.SessionRuns, plugin.SessionMgc));
+        ImGui.TextDisabled(Loc.T("All time {0} runs / {1} MGC, best run {2}", cfg.TotalRuns, cfg.TotalMgcEarned, cfg.BestRunMgc));
 
-        Section("Typing speed (moving these makes it custom)");
+        Section(Loc.T("Typing speed (moving these makes it custom)"));
         var charDelay = cfg.CharDelayMs;
         ImGui.SetNextItemWidth(200);
-        if (ImGui.SliderInt("Delay per letter (ms)", ref charDelay, 0, 300)) { cfg.CharDelayMs = charDelay; cfg.WordSeconds = 0; cfg.Speed = TypingSpeed.Custom; changed = true; }
+        if (ImGui.SliderInt(Loc.T("Delay per letter (ms)") + "###chardelay", ref charDelay, 0, 300)) { cfg.CharDelayMs = charDelay; cfg.WordSeconds = 0; cfg.Speed = TypingSpeed.Custom; changed = true; }
         var wordDelay = cfg.WordDelayMs;
         ImGui.SetNextItemWidth(200);
-        if (ImGui.SliderInt("Pause after Enter (ms)", ref wordDelay, 0, 1000)) { cfg.WordDelayMs = wordDelay; cfg.Speed = TypingSpeed.Custom; changed = true; }
+        if (ImGui.SliderInt(Loc.T("Pause after Enter (ms)") + "###worddelay", ref wordDelay, 0, 1000)) { cfg.WordDelayMs = wordDelay; cfg.Speed = TypingSpeed.Custom; changed = true; }
         var retry = cfg.RetryAfterMs;
         ImGui.SetNextItemWidth(200);
-        if (ImGui.SliderInt("Retry same word after (ms)", ref retry, 200, 5000)) { cfg.RetryAfterMs = retry; changed = true; }
+        if (ImGui.SliderInt(Loc.T("Retry same word after (ms)") + "###retry", ref retry, 200, 5000)) { cfg.RetryAfterMs = retry; changed = true; }
 
-        Section("Casts");
-        ImGui.TextDisabled("Cursed Gaze / Sensory Jammer: keeps typing while the bar fills, then holds every key while it lands.");
+        Section(Loc.T("Casts"));
+        ImGui.TextDisabled(Loc.T("Cursed Gaze / Sensory Jammer: keeps typing while the bar fills, then holds every key while it lands."));
         dangerEdit ??= string.Join(", ", cfg.DangerCasts);
-        ImGui.TextUnformatted("Also treat these casts as no-typing");
+        ImGui.TextUnformatted(Loc.T("Also treat these casts as no-typing"));
         ImGui.SetNextItemWidth(-70);
         ImGui.InputText("##danger", ref dangerEdit, 512);
         ImGui.SameLine();
-        if (ImGui.Button("Apply##danger"))
+        if (ImGui.Button(Loc.T("Apply") + "###danger"))
         {
             cfg.DangerCasts = SplitList(dangerEdit);
             changed = true;
         }
         urgentEdit ??= string.Join(", ", cfg.UrgentCasts);
-        ImGui.TextUnformatted("Type enemies casting these first");
+        ImGui.TextUnformatted(Loc.T("Type enemies casting these first"));
         ImGui.SetNextItemWidth(-70);
         ImGui.InputText("##urgent", ref urgentEdit, 512);
         ImGui.SameLine();
-        if (ImGui.Button("Apply##urgent"))
+        if (ImGui.Button(Loc.T("Apply") + "###urgent"))
         {
             cfg.UrgentCasts = SplitList(urgentEdit);
             changed = true;
         }
 
-        Section("Other");
-        ImGui.TextUnformatted("MGC chat line (group 1 = amount)");
+        Section(Loc.T("Other"));
+        ImGui.TextUnformatted(Loc.T("MGC chat line (group 1 = amount)"));
         ImGui.SetNextItemWidth(-70);
         ImGui.InputText("##pattern", ref patternEdit, 256);
         ImGui.SameLine();
-        if (ImGui.Button("Apply##pattern"))
+        if (ImGui.Button(Loc.T("Apply") + "###pattern"))
             plugin.SetPattern(patternEdit);
 
         var autoDump = cfg.AutoDump;
-        if (ImGui.Checkbox("Save UI dumps during matches (for bug reports)", ref autoDump)) { cfg.AutoDump = autoDump; changed = true; }
+        if (ImGui.Checkbox(Loc.T("Save UI dumps during matches (for bug reports)") + "###autodump", ref autoDump)) { cfg.AutoDump = autoDump; changed = true; }
         ImGui.SameLine();
-        if (ImGui.SmallButton("Open folder"))
+        if (ImGui.SmallButton(Loc.T("Open folder") + "###dumps"))
         {
             var dir = Path.Combine(Plugin.PluginInterface.GetPluginConfigDirectory(), "dumps");
             Directory.CreateDirectory(dir);
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dir) { UseShellExecute = true });
         }
 
-        if (ImGui.Button("Reset stats"))
+        if (ImGui.Button(Loc.T("Reset stats") + "###reset"))
         {
             cfg.TotalRuns = 0;
             cfg.TotalMgcEarned = 0;
@@ -460,7 +476,7 @@ public sealed class MainWindow : Window
             changed = true;
         }
         ImGui.SameLine();
-        if (ImGui.Button("Support on Ko-fi"))
+        if (ImGui.Button(Loc.T("Support on Ko-fi") + "###kofi"))
             Dalamud.Utility.Util.OpenLink("https://ko-fi.com/kewiv");
 
         if (changed) cfg.Save();
