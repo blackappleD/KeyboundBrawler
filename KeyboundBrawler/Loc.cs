@@ -66,13 +66,35 @@ public static class Loc
 
         // Sections
         ["Rewards"] = "奖励",
+        ["Play rounds"] = "连续对局",
         ["Word log"] = "单词记录",
         ["Settings"] = "设置",
 
+        // Play rounds
+        ["Stop (round {0} of {1})"] = "停止（第 {0}/{1} 局）",
+        ["rounds"] = "局",
+        ["Play {0} rounds"] = "连续打 {0} 局",
+        ["Needs the vnavmesh plugin to walk to the Keybound Registrar."] = "需要 vnavmesh 插件才能走到 Keybound Registrar 处。",
+        ["Go to the Gold Saucer event area first."] = "请先前往金碟游乐场的活动区域。",
+        ["Stopped after {0} of {1} rounds."] = "已停止，共完成 {0}/{1} 局。",
+        ["Talking to the entry NPC"] = "正在与报名 NPC 对话",
+        ["vnavmesh could not path to the entry NPC."] = "vnavmesh 无法寻路到报名 NPC 处。",
+        ["Walking to the entry NPC"] = "正在走向报名 NPC",
+        ["Took too long to reach the entry NPC."] = "走到报名 NPC 处耗时过长。",
+        ["Could not find the entry NPC nearby."] = "附近找不到报名 NPC。",
+        ["Opening the entry window"] = "正在打开报名窗口",
+        ["Round {0} of {1}: playing"] = "第 {0}/{1} 局：对局中",
+        ["Waiting for the match to start"] = "等待对局开始",
+        ["The match did not start."] = "对局没有开始。",
+        ["Match over, leaving"] = "对局结束，正在离开",
+        ["Leaving the duty"] = "正在退出任务",
+        ["Finished {0} rounds."] = "已完成 {0} 局。",
+        ["Round {0} of {1} done, next one soon"] = "第 {0}/{1} 局已完成，即将开始下一局",
+        ["Did not get back from the duty."] = "未能从任务中返回。",
+        ["Stopped: {0}"] = "已停止：{0}",
+
         // Vendor and shop
-        ["Vendor: not set"] = "商人：未设置",
         ["Vendor: {0}"] = "商人：{0}",
-        ["Use my target"] = "使用当前目标",
         ["Stop"] = "停止",
         ["Buy wanted rewards now"] = "立即购买想要的奖励",
         ["Walk to vendor and buy"] = "走到商人处并购买",
@@ -143,9 +165,6 @@ public static class Loc
         ["Open the Keybound Brawler tracker. /kbb auto toggles auto-play."] = "打开 Keybound Brawler 助手。/kbb auto 切换自动打字。",
 
         // Vendor status
-        ["Target the MGC vendor first."] = "请先选中 MGC 商人。",
-        ["Vendor saved: {0}"] = "已保存商人：{0}",
-        ["No vendor saved yet. Target the MGC Trader once."] = "还没有保存商人。请选中一次 MGC Trader。",
         ["Go to the Gold Saucer first."] = "请先前往金碟游乐场。",
         ["Talking to the vendor"] = "正在与商人对话",
         ["vnavmesh is not installed or not loaded."] = "vnavmesh 未安装或未加载。",
@@ -166,6 +185,8 @@ public static class Loc
         ["Could not switch to the right tab."] = "无法切换到对应的分页。",
         ["Not enough MGC for {0} ({1}/{2})."] = "MGC 不足以购买 {0}（{1}/{2}）。",
         ["No confirmation showed up after picking the item."] = "选择物品后没有出现确认框。",
+        ["More confirmations than expected for {0}."] = "购买 {0} 时出现了比预期更多的确认框。",
+        ["{0} asks for an amount. Buy it by hand for now."] = "{0} 需要输入数量，请暂时手动购买。",
         ["MGC did not go down after buying {0}."] = "购买 {0} 后 MGC 没有减少。",
         ["All wanted rewards bought."] = "想要的奖励已全部购买。",
         ["Buying {0}"] = "正在购买 {0}",

@@ -60,13 +60,13 @@ public class Configuration : IPluginConfiguration
     public float TopIgnore { get; set; } = 0.08f;
     public float BottomIgnore { get; set; } = 0.62f;
 
-    // MGC vendor, saved from the player's target.
-    public string VendorName { get; set; } = "";
-    public uint VendorBaseId { get; set; }
-    public System.Numerics.Vector3 VendorPosition { get; set; }
-    public ushort VendorTerritory { get; set; }
+    // How many rounds "Play rounds" plays back to back.
+    public int LoopRounds { get; set; } = 5;
+
     // Buy the wanted rewards as soon as the walk opens the shop.
     public bool AutoBuy { get; set; }
+    // How many Keybound Coffers one buy takes (fewer when the MGC runs short).
+    public int CofferCount { get; set; } = 1;
     public bool HideOwnedRewards { get; set; }
     public Language Language { get; set; } = Language.Auto;
 

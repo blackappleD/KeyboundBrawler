@@ -95,6 +95,8 @@ public sealed class MainWindow : Window
         DrawMgcProgress(cfg);
 
         ImGui.Spacing();
+        if (ImGui.CollapsingHeader(Loc.T("Play rounds") + "###rounds"))
+            DrawRounds(cfg);
         if (ImGui.CollapsingHeader(Loc.T("Rewards") + "###rewards"))
         {
             DrawVendor(cfg);
@@ -110,11 +112,15 @@ public sealed class MainWindow : Window
 
     private void DrawHeader()
     {
-        var iconPath = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", "icon.png");
-        if (File.Exists(iconPath))
+        // The bird behind its desk taps a wing for every key auto-play sends, and rests otherwise.
+        var auto0 = plugin.AutoPlayer;
+        var frame = auto0.Enabled && auto0.CurrentWord != null && auto0.TypedCount > 0
+            ? (auto0.TypedCount % 2 == 1 ? "left" : "right") : "idle";
+        var birdPath = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", $"bird_{frame}.png");
+        if (File.Exists(birdPath))
         {
-            var icon = Plugin.TextureProvider.GetFromFile(iconPath).GetWrapOrEmpty();
-            ImGui.Image(icon.Handle, new Vector2(52, 52));
+            var bird = Plugin.TextureProvider.GetFromFile(birdPath).GetWrapOrEmpty();
+            ImGui.Image(bird.Handle, new Vector2(100, 97));
             ImGui.SameLine();
         }
 
@@ -244,24 +250,46 @@ public sealed class MainWindow : Window
 
         var next = goal[0];
         var avg = AveragePerRun(cfg);
-        var amount = $"{cfg.CurrentMgc} / {next.Cost}";
+        var price = Rewards.Price(next, cfg);
+        var amount = $"{cfg.CurrentMgc} / {price}";
         ImGui.TextUnformatted(Loc.T("Next: {0}", next.Name));
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize(amount).X);
         ImGui.TextUnformatted(amount);
-        ImGui.ProgressBar(Math.Min(1f, cfg.CurrentMgc / (float)next.Cost), new Vector2(-1, 10), "");
+        ImGui.ProgressBar(Math.Min(1f, cfg.CurrentMgc / (float)price), new Vector2(-1, 10), "");
 
-        var shortfall = next.Cost - cfg.CurrentMgc;
+        var shortfall = price - cfg.CurrentMgc;
         var nextLine = shortfall <= 0 ? Loc.T("You can buy it now.") : avg > 0 ? Loc.T("{0} MGC to go, about {1} runs.", shortfall, Math.Ceiling(shortfall / avg)) : Loc.T("{0} MGC to go.", shortfall);
-        ImGui.TextDisabled(Loc.T("{0} Wish list: {1} rewards, {2} MGC.", nextLine, goal.Count, goal.Sum(r => r.Cost)));
+        ImGui.TextDisabled(Loc.T("{0} Wish list: {1} rewards, {2} MGC.", nextLine, goal.Count, goal.Sum(r => Rewards.Price(r, cfg))));
+    }
+
+    // Round loop: walks to the Keybound Registrar, plays, leaves, and goes again.
+    private void DrawRounds(Configuration cfg)
+    {
+        var rounds = plugin.Rounds;
+        if (rounds.Busy)
+        {
+            if (ImGui.Button(Loc.T("Stop (round {0} of {1})", Math.Min(rounds.RoundsDone + 1, rounds.RoundsWanted), rounds.RoundsWanted) + "###roundstop", new Vector2(-1, 30)))
+                rounds.Stop();
+        }
+        else
+        {
+            var count = cfg.LoopRounds;
+            ImGui.SetNextItemWidth(120);
+            if (ImGui.InputInt(Loc.T("rounds") + "###roundcount", ref count)) { cfg.LoopRounds = Math.Clamp(count, 1, 999); cfg.Save(); }
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.T("Play {0} rounds", cfg.LoopRounds) + "###roundstart", new Vector2(-1, 0)))
+                rounds.Start(cfg.LoopRounds);
+        }
+        if (!Navmesh.Installed)
+            ImGui.TextDisabled(Loc.T("Needs the vnavmesh plugin to walk to the Keybound Registrar."));
+        if (rounds.Status.Length > 0)
+            ImGui.TextDisabled(rounds.Status);
     }
 
     private void DrawVendor(Configuration cfg)
     {
         var vendor = plugin.Vendor;
-        ImGui.TextUnformatted(cfg.VendorBaseId == 0 ? Loc.T("Vendor: not set") : Loc.T("Vendor: {0}", cfg.VendorName));
-        ImGui.SameLine();
-        if (ImGui.SmallButton(Loc.T("Use my target") + "###usetarget"))
-            vendor.RememberTarget();
+        ImGui.TextUnformatted(Loc.T("Vendor: {0}", VendorRunner.VendorName));
 
         var shop = plugin.Shop;
         if (vendor.Busy || shop.Busy)
@@ -278,7 +306,7 @@ public sealed class MainWindow : Window
         }
         var autoBuy = cfg.AutoBuy;
         if (ImGui.Checkbox(Loc.T("Buy wanted rewards when the shop opens") + "###autobuy", ref autoBuy)) { cfg.AutoBuy = autoBuy; cfg.Save(); }
-        if (!VendorRunner.VnavmeshInstalled)
+        if (!Navmesh.Installed)
             ImGui.TextDisabled(Loc.T("Needs the vnavmesh plugin to walk (talking works without it when you stand close)."));
         if (vendor.Status.Length > 0)
             ImGui.TextDisabled(vendor.Status);
@@ -367,8 +395,9 @@ public sealed class MainWindow : Window
                 Toggle(cfg, cfg.Wanted, reward.Name, wanted);
 
             ImGui.TableNextColumn();
-            var owned = cfg.Owned.Contains(reward.Name);
-            if (ImGui.Checkbox("##owned", ref owned))
+            var coffer = reward.Name == Rewards.Coffer;
+            var owned = !coffer && cfg.Owned.Contains(reward.Name);
+            if (!coffer && ImGui.Checkbox("##owned", ref owned))
             {
                 Toggle(cfg, cfg.Owned, reward.Name, owned);
                 // Ticking "got" after buying spends the MGC; unticking refunds it.
@@ -382,10 +411,19 @@ public sealed class MainWindow : Window
             ImGui.TableNextColumn();
             if (owned) ImGui.TextDisabled(reward.Name);
             else ImGui.TextUnformatted(reward.Name);
+            if (coffer)
+            {
+                // Amount box with - + like the shop row's own, right after the name.
+                ImGui.SameLine(0, 12);
+                ImGui.SetNextItemWidth(96);
+                var count = cfg.CofferCount;
+                if (ImGui.InputInt("##coffers", ref count)) { cfg.CofferCount = Math.Clamp(count, 1, 99); cfg.Save(); }
+            }
             ImGui.TableNextColumn();
-            // Orange price: wanted and affordable right now.
-            if (!owned && wanted && reward.Cost <= cfg.CurrentMgc) ImGui.TextColored(Orange, reward.Cost.ToString());
-            else ImGui.TextDisabled(reward.Cost.ToString());
+            // Orange price: wanted and affordable right now. The Coffer shows the total for its amount.
+            var price = Rewards.Price(reward, cfg);
+            if (!owned && wanted && price <= cfg.CurrentMgc) ImGui.TextColored(Orange, price.ToString());
+            else ImGui.TextDisabled(price.ToString());
 
             ImGui.PopID();
         }
@@ -484,7 +522,8 @@ public sealed class MainWindow : Window
 
     private void DrawScanner(Configuration cfg)
     {
-        if (ImGui.Button(plugin.Recorder.Recording ? "Stop recording shop clicks" : "Record shop clicks"))
+        // Logs the clicks on the shop and on the brawler entry / exit windows as [rec] lines.
+        if (ImGui.Button(plugin.Recorder.Recording ? "Stop recording clicks" : "Record clicks (shop, entry, exit)"))
             plugin.Recorder.Toggle();
         ImGui.SameLine();
         if (ImGui.Button("Dump visible UI text to file"))

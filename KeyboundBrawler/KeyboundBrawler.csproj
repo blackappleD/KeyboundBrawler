@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\images\icon_128.png" Link="icon.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\images\bird_*.png" LinkBase="." CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
