@@ -45,6 +45,10 @@ result screen, and goes again.
 Be in the Gold Saucer event area, set the number of rounds, and press **Play N rounds**. Nothing to set up:
 the Registrar and the MGC Trader are built in.
 
+MGC stops at 10,000. Tick **Shop before MGC hits 10,000** and, between rounds, when the next win could go past
+the cap it walks to the MGC Trader, buys your wanted rewards, spends the rest on Keybound Coffers (a few MGC under
+one Coffer's price stay), closes the shop and plays the rounds that are left.
+
 ## Tracker and rewards
 
 - Counts runs and MGC from chat, and shows how many runs you still need for the rewards you tick

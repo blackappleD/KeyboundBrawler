@@ -275,6 +275,10 @@ public sealed class MainWindow : Window
             if (ImGui.Button($"Play {cfg.LoopRounds} rounds", new Vector2(-1, 0)))
                 rounds.Start(cfg.LoopRounds);
         }
+        var shopWhenFull = cfg.ShopWhenFull;
+        if (ImGui.Checkbox($"Shop before MGC hits {Rewards.MgcCap:N0}", ref shopWhenFull)) { cfg.ShopWhenFull = shopWhenFull; cfg.Save(); }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Between rounds, when the next win could go past the cap: walk to the MGC Trader,\nbuy the wanted rewards, spend the rest on Keybound Coffers, then keep playing.");
         if (!Navmesh.Installed)
             ImGui.TextDisabled("Needs the vnavmesh plugin to walk to the Keybound Registrar.");
         if (rounds.Status.Length > 0)

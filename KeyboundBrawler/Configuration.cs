@@ -67,6 +67,9 @@ public class Configuration : IPluginConfiguration
     public bool AutoBuy { get; set; }
     // How many Keybound Coffers one buy takes (fewer when the MGC runs short).
     public int CofferCount { get; set; } = 1;
+    // Play rounds: when the next win could push MGC past the cap, walk to the vendor, buy the wanted rewards,
+    // put the rest into Keybound Coffers, then carry on with the rounds left.
+    public bool ShopWhenFull { get; set; }
     public bool HideOwnedRewards { get; set; }
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);

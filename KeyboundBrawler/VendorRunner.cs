@@ -26,6 +26,7 @@ public sealed class VendorRunner : IDisposable
     private Step step;
     private DateTime stepStarted;
     private string[] addonsBeforeTalk = [];
+    private bool spendAll;
 
     public string Status { get; private set; } = "";
     public bool Busy => step != Step.Idle;
@@ -42,8 +43,10 @@ public sealed class VendorRunner : IDisposable
         if (Busy) Stop();
     }
 
-    public void Start()
+    // spendAll: buy the wanted rewards and put the rest into Coffers once the shop opens, whatever the AutoBuy tick says.
+    public void Start(bool spendAll = false)
     {
+        this.spendAll = spendAll;
         if ((ushort)Plugin.ClientState.TerritoryType != VendorTerritory) { Status = "Go to the Gold Saucer first."; return; }
 
         if (DistanceToVendor() <= TalkRange)
@@ -110,7 +113,8 @@ public sealed class VendorRunner : IDisposable
                     System.IO.File.AppendAllLines(path, opened.SelectMany(UiScanner.AtkValues));
                     Plugin.Log.Info($"Shop opened: {string.Join(", ", opened)} (dump {path})");
                     SetStep(Step.Idle, "Shop open.");
-                    if (plugin.Config.AutoBuy) plugin.Shop.Start();
+                    if (spendAll) plugin.Shop.Start(spendRest: true);
+                    else if (plugin.Config.AutoBuy) plugin.Shop.Start();
                 }
                 else if (elapsed > ShopTimeout)
                 {

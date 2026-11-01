@@ -32,6 +32,8 @@ public sealed unsafe class ShopBuyer : IDisposable
     private uint mgcBefore;
     private bool tabRequested;
     private int confirms;
+    private bool fillCoffers;
+    private const int MaxCoffersPerBuy = 99;
 
     public string Status { get; private set; } = "";
     public bool Busy => step != Step.Idle;
@@ -46,13 +48,25 @@ public sealed unsafe class ShopBuyer : IDisposable
 
     public static bool ShopOpen => Shop() != null;
 
-    public void Start()
+    // Same as pressing the shop's close button.
+    public static void CloseShop()
+    {
+        var shop = Shop();
+        if (shop == null) return;
+        shop->Close(true);
+        Plugin.Log.Info("[shop] Closed the shop");
+    }
+
+    // spendRest: after the wanted rewards, put every MGC left into Keybound Coffers (used when MGC is near the cap).
+    public void Start(bool spendRest = false)
     {
         var cfg = plugin.Config;
+        fillCoffers = spendRest;
         queue.Clear();
         foreach (var r in Rewards.All.Where(r => cfg.Wanted.Contains(r.Name) && !cfg.Owned.Contains(r.Name)).OrderBy(r => r.Cost))
-            queue.Enqueue(r);
-        if (queue.Count == 0) { Status = "Nothing to buy: tick Want on some rewards."; return; }
+            if (!spendRest || r.Name != Repeatable)
+                queue.Enqueue(r);
+        if (queue.Count == 0 && !spendRest) { Status = "Nothing to buy: tick Want on some rewards."; return; }
         if (Shop() == null) { Status = "Open the MGC Trader's shop first."; return; }
         Next();
     }
@@ -92,9 +106,16 @@ public sealed unsafe class ShopBuyer : IDisposable
                 var row = FindRow(shop, current!.Name);
                 if (row < 0) { Skip($"{current.Name} is not in the shop (already owned?)."); break; }
                 mgcBefore = UInt(shop, MgcValue);
-                if (mgcBefore < current.Cost) { Finish($"Not enough MGC for {current.Name} ({mgcBefore}/{current.Cost})."); break; }
+                if (mgcBefore < current.Cost)
+                {
+                    // When spending down for the cap, skip what does not fit and still fill up on Coffers.
+                    if (fillCoffers && current.Name != Repeatable) { Skip($"Not enough MGC for {current.Name} ({mgcBefore}/{current.Cost})."); break; }
+                    Finish($"Not enough MGC for {current.Name} ({mgcBefore}/{current.Cost}).");
+                    break;
+                }
                 // The amount is the last value, same as typing it into the row's box by hand.
-                var amount = current.Name == Repeatable ? Math.Clamp(plugin.Config.CofferCount, 1, (int)(mgcBefore / current.Cost)) : 1;
+                var wantCoffers = fillCoffers ? MaxCoffersPerBuy : plugin.Config.CofferCount;
+                var amount = current.Name == Repeatable ? Math.Clamp(wantCoffers, 1, Math.Min(MaxCoffersPerBuy, (int)(mgcBefore / current.Cost))) : 1;
                 Fire(shop, false, 0, (int)UInt(shop, FirstShopIndexValue + row), amount);
                 confirms = 0;
                 SetStep(Step.Confirm);
@@ -136,7 +157,14 @@ public sealed unsafe class ShopBuyer : IDisposable
 
     private void Next()
     {
-        if (queue.Count == 0) { Finish("All wanted rewards bought."); return; }
+        if (queue.Count == 0 && fillCoffers)
+        {
+            // One more Coffer buy while a whole Coffer still fits; the few MGC under its price stay.
+            var coffer = Rewards.All.First(r => r.Name == Repeatable);
+            var shop = Shop();
+            if (shop != null && UInt(shop, MgcValue) >= coffer.Cost) queue.Enqueue(coffer);
+        }
+        if (queue.Count == 0) { Finish(fillCoffers ? "Bought everything; the rest went into Keybound Coffers." : "All wanted rewards bought."); return; }
         current = queue.Dequeue();
         tabRequested = false;
         Status = $"Buying {current.Name}";
@@ -145,6 +173,8 @@ public sealed unsafe class ShopBuyer : IDisposable
 
     private void Skip(string why)
     {
+        // A Coffer that cannot be bought would just be queued again, so stop filling instead of looping.
+        if (current?.Name == Repeatable) fillCoffers = false;
         Plugin.Log.Info($"[shop] {why}");
         Next();
     }
