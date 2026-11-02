@@ -90,6 +90,12 @@ public static class Loc
         ["Leaving the duty"] = "正在退出任务",
         ["Finished {0} rounds."] = "已完成 {0} 局。",
         ["Round {0} of {1} done, next one soon"] = "第 {0}/{1} 局已完成，即将开始下一局",
+        ["Shop before MGC hits {0:N0}"] = "MGC 达到 {0:N0} 上限前先去购物",
+        ["Between rounds, when the next win could go past the cap: walk to the MGC Trader,\nbuy the wanted rewards, spend the rest on Keybound Coffers, then keep playing."] = "两局之间，若下一局获胜可能使 MGC 超出上限：走到 MGC Trader，\n购买想要的奖励，剩余 MGC 全部换成 Keybound Coffer，然后继续打。",
+        ["MGC near the cap ({0}), shopping"] = "MGC 接近上限（{0}），正在去购物",
+        ["Shopping took too long."] = "购物耗时过长。",
+        ["Could not shop: {0}"] = "无法购物：{0}",
+        ["Could not go shopping: {0}"] = "无法前往购物：{0}",
         ["Did not get back from the duty."] = "未能从任务中返回。",
         ["Stopped: {0}"] = "已停止：{0}",
 
@@ -190,6 +196,7 @@ public static class Loc
         ["MGC did not go down after buying {0}."] = "购买 {0} 后 MGC 没有减少。",
         ["All wanted rewards bought."] = "想要的奖励已全部购买。",
         ["Buying {0}"] = "正在购买 {0}",
+        ["Bought everything; the rest went into Keybound Coffers."] = "已全部买完，剩余 MGC 已换成 Keybound Coffer。",
         [" Saved a dump."] = " 已保存转储。",
     };
 }

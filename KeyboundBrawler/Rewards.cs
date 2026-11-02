@@ -33,6 +33,9 @@ public static class Rewards
     // Can be bought again and again, in any amount, so it is never "got".
     public const string Coffer = "Keybound Coffer";
 
+    // The most MGC a character can hold; wins past it are lost.
+    public const int MgcCap = 10000;
+
     // What one buy of this reward costs: the Coffer comes in the amount set in its row.
     public static int Price(Reward r, Configuration cfg) => r.Name == Coffer ? r.Cost * cfg.CofferCount : r.Cost;
 }

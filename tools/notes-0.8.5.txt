@@ -1,0 +1,2 @@
+- Play rounds: new "Shop before MGC hits 10,000" tick. When the next win could go past the cap, it walks to the MGC Trader, buys your wanted rewards, spends the rest on Keybound Coffers, closes the shop and plays the rounds that are left.
+- The MGC tracker no longer counts past 10,000.

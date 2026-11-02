@@ -14,7 +14,7 @@ namespace KeyboundBrawler;
 // Entry NPC id and the KTGEnterDialogue / KTGResult window names: PunishXIV/Saucy (BSD-3).
 public sealed unsafe class RoundRunner : IDisposable
 {
-    private enum Step { Idle, Walking, Talking, Entering, WaitMatch, Playing, Exiting, WaitBack, Resting }
+    private enum Step { Idle, Walking, Talking, Entering, WaitMatch, Playing, Exiting, WaitBack, Shopping, Resting }
 
     private readonly record struct Click(string Addon, int Value);
 
@@ -39,6 +39,10 @@ public sealed unsafe class RoundRunner : IDisposable
     // Right after coming back from a match the Registrar can ignore the first talk; ask again this often.
     private static readonly TimeSpan TalkRetry = TimeSpan.FromSeconds(5);
     private const int TalkTries = 3;
+    // A shopping trip (walk, buy everything, fill up on Coffers) should be over well within this.
+    private static readonly TimeSpan ShopTimeout = TimeSpan.FromMinutes(3);
+    // Room kept under the MGC cap when the best win so far is unknown.
+    private const int DefaultWinMargin = 400;
 
     private readonly Plugin plugin;
     private Step step;
@@ -68,11 +72,14 @@ public sealed unsafe class RoundRunner : IDisposable
         if ((ushort)Plugin.ClientState.TerritoryType != EntryTerritory) { Status = Loc.T("Go to the Gold Saucer event area first."); return; }
         RoundsDone = 0;
         RoundsWanted = Math.Max(1, rounds);
+        // Already near the cap: shop first so the very first win is not lost.
+        if (plugin.Config.ShopWhenFull && NearCap()) { GoShopping(); return; }
         GoToNpc();
     }
 
     public void Stop()
     {
+        if (step == Step.Shopping) { plugin.Vendor.Stop(); plugin.Shop.Stop(); }
         plugin.Nav.Stop();
         SetStep(Step.Idle, "Stopped after {0} of {1} rounds.", RoundsDone, RoundsWanted);
     }
@@ -155,16 +162,48 @@ public sealed unsafe class RoundRunner : IDisposable
                 {
                     RoundsDone++;
                     Plugin.Log.Info($"[rounds] Round {RoundsDone} of {RoundsWanted} done");
-                    if (RoundsDone >= RoundsWanted) SetStep(Step.Idle, "Finished {0} rounds.", RoundsDone);
-                    else SetStep(Step.Resting, "Round {0} of {1} done, next one soon", RoundsDone, RoundsWanted);
+                    if (plugin.Config.ShopWhenFull && NearCap()) GoShopping();
+                    else AfterRound();
                 }
                 else if (elapsed > BackTimeout) Fail("Did not get back from the duty.");
+                break;
+
+            case Step.Shopping:
+                if (elapsed < TimeSpan.FromSeconds(1) || plugin.Vendor.Busy || plugin.Shop.Busy)
+                {
+                    if (elapsed > ShopTimeout) { plugin.Vendor.Stop(); plugin.Shop.Stop(); Fail("Shopping took too long."); }
+                    break;
+                }
+                if (!ShopBuyer.ShopOpen) { Fail("Could not shop: {0}", plugin.Vendor.Status); break; }
+                Plugin.Log.Info($"[rounds] Shopping done: {plugin.Shop.Status}");
+                ShopBuyer.CloseShop();
+                AfterRound();
                 break;
 
             case Step.Resting:
                 if (elapsed > RestBetweenRounds && CanAct) GoToNpc();
                 break;
         }
+    }
+
+    // The next win could push MGC past the cap, where it would be lost.
+    private bool NearCap()
+    {
+        var cfg = plugin.Config;
+        return cfg.CurrentMgc + Math.Max(cfg.BestRunMgc, DefaultWinMargin) > Rewards.MgcCap;
+    }
+
+    private void GoShopping()
+    {
+        plugin.Vendor.Start(spendAll: true);
+        if (!plugin.Vendor.Busy) { Fail("Could not go shopping: {0}", plugin.Vendor.Status); return; }
+        SetStep(Step.Shopping, "MGC near the cap ({0}), shopping", plugin.Config.CurrentMgc);
+    }
+
+    private void AfterRound()
+    {
+        if (RoundsDone >= RoundsWanted) SetStep(Step.Idle, "Finished {0} rounds.", RoundsDone);
+        else SetStep(Step.Resting, "Round {0} of {1} done, next one soon", RoundsDone, RoundsWanted);
     }
 
     // Sends the clicks one by one, each once its window is up. True when all were sent.
@@ -222,15 +261,15 @@ public sealed unsafe class RoundRunner : IDisposable
         return me == null ? float.MaxValue : Vector3.Distance(me.Position, EntryNpcPosition);
     }
 
-    private void Fail(string why)
+    private void Fail(string why, params object[] args)
     {
         Plugin.Log.Info($"[rounds] Open windows: {string.Join(", ", UiScanner.VisibleAddons())}");
         plugin.Nav.Stop();
         step = Step.Idle;
         stepStarted = DateTime.UtcNow;
         // Status follows the plugin language; the log stays English for bug reports.
-        Status = Loc.T("Stopped: {0}", Loc.T(why));
-        Plugin.Log.Info($"[rounds] Stopped: {why}");
+        Status = Loc.T("Stopped: {0}", Loc.T(why, args));
+        Plugin.Log.Info($"[rounds] Stopped: {string.Format(why, args)}");
     }
 
     // Status follows the plugin language; the log stays English for bug reports.

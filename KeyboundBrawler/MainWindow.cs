@@ -280,6 +280,10 @@ public sealed class MainWindow : Window
             if (ImGui.Button(Loc.T("Play {0} rounds", cfg.LoopRounds) + "###roundstart", new Vector2(-1, 0)))
                 rounds.Start(cfg.LoopRounds);
         }
+        var shopWhenFull = cfg.ShopWhenFull;
+        if (ImGui.Checkbox(Loc.T("Shop before MGC hits {0:N0}", Rewards.MgcCap) + "###shopwhenfull", ref shopWhenFull)) { cfg.ShopWhenFull = shopWhenFull; cfg.Save(); }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Loc.T("Between rounds, when the next win could go past the cap: walk to the MGC Trader,\nbuy the wanted rewards, spend the rest on Keybound Coffers, then keep playing."));
         if (!Navmesh.Installed)
             ImGui.TextDisabled(Loc.T("Needs the vnavmesh plugin to walk to the Keybound Registrar."));
         if (rounds.Status.Length > 0)

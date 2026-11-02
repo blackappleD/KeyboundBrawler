@@ -223,7 +223,7 @@ public sealed class Plugin : IDalamudPlugin
         SessionMgc += amount;
         Config.TotalRuns++;
         Config.TotalMgcEarned += amount;
-        Config.CurrentMgc += amount;
+        Config.CurrentMgc = Math.Min(Rewards.MgcCap, Config.CurrentMgc + amount);
         Config.BestRunMgc = Math.Max(Config.BestRunMgc, amount);
         Config.Save();
         Log.Debug($"Keybound Brawler: +{amount} MGC (run {Config.TotalRuns})");
