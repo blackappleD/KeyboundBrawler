@@ -30,6 +30,10 @@ public sealed class MainWindow : Window
     private string? dumpResult;
     private int pushedColors;
     private int pushedVars;
+    private static readonly TimeSpan BonkTime = TimeSpan.FromMilliseconds(110);
+    private int lastTyped;
+    private int bonks;
+    private DateTime bonkUntil;
 
     public MainWindow(Plugin plugin) : base("Keybound Brawler Helper###kbb")
     {
@@ -107,10 +111,15 @@ public sealed class MainWindow : Window
 
     private void DrawHeader()
     {
-        // The bird behind its desk taps a wing for every key auto-play sends, and rests otherwise.
+        // Bongo Cat style: every key auto-play sends bonks one wing down for a moment, then both wings go back up.
         var auto0 = plugin.AutoPlayer;
-        var frame = auto0.Enabled && auto0.CurrentWord != null && auto0.TypedCount > 0
-            ? (auto0.TypedCount % 2 == 1 ? "left" : "right") : "idle";
+        var typed = auto0.Enabled ? auto0.TypedCount : 0;
+        if (typed != lastTyped)
+        {
+            if (typed > lastTyped) { bonks++; bonkUntil = DateTime.UtcNow + BonkTime; }
+            lastTyped = typed;
+        }
+        var frame = DateTime.UtcNow < bonkUntil ? (bonks % 2 == 1 ? "left" : "right") : "idle";
         var birdPath = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName ?? "", $"bird_{frame}.png");
         if (File.Exists(birdPath))
         {

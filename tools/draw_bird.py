@@ -1,99 +1,96 @@
-# Draws the typing bird (Bongo Cat style) in three frames: idle, left wing down, right wing down.
+# Draws the typing bird, Steam Bongo Cat style: a chubby white bird with glasses peeking over a ledge,
+# wings up while resting, one wing bonking the ledge per key. Three frames: idle, left, right.
 # Usage: python -I tools/draw_bird.py images [preview.png]
-import math
 import sys
 from PIL import Image, ImageDraw
 
 S = 4                      # supersampling
 W, H = 300, 290
-INK = (70, 46, 36, 255)
+INK = (84, 56, 44, 255)
 WHITE = (255, 255, 255, 255)
-CHEEK = (248, 196, 200, 255)
-BEAK = (243, 170, 96, 255)
-LW = 4                     # outline width before supersampling
-
-# The desk edge slants down to the right, like the Bongo Cat gif.
-DESK_L, DESK_R = 150, 205
-TILT = math.degrees(math.atan2(DESK_R - DESK_L, W))
+SHADE = (244, 236, 228, 255)
+PINK = (255, 178, 186, 255)
+BEAK = (247, 168, 92, 255)
+LEDGE = (255, 241, 222, 255)
+LW = 6                     # outline width before supersampling
+LEDGE_Y = 214              # top of the ledge the bird peeks over
 
 
 def s(v): return [round(c * S) for c in v]
 
 
-def desk_y(x): return DESK_L + (DESK_R - DESK_L) * x / W
-
-
-def layer(w, h):
-    img = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0))
+def layer():
+    img = Image.new("RGBA", (W * S, H * S), (0, 0, 0, 0))
     return img, ImageDraw.Draw(img)
 
 
-def mitt(w, h, feathers):
-    # A round wing tip with little feather scallops along its front edge.
-    img, d = layer(w + 4, h + 4)
-    d.ellipse(s((2, 2, w, h)), fill=WHITE, outline=INK, width=LW * S)
-    step = w / (feathers + 1)
-    for i in range(1, feathers + 1):
-        x = 2 + step * i
-        d.arc(s((x - 6, h - 16, x + 6, h - 4)), 200, 340, fill=INK, width=3 * S)
-    return img
+def line(d, pts, w=LW):
+    d.line(s(pts), fill=INK, width=w * S, joint="curve")
+    for x, y in (pts[:2], pts[-2:]):   # round caps
+        r = w / 2
+        d.ellipse(s((x - r, y - r, x + r, y + r)), fill=INK)
 
 
-def keyboard():
-    kw, kh = 210, 92
-    img, d = layer(kw + 4, kh + 4)
-    d.rounded_rectangle(s((2, 2, kw, kh)), radius=8 * S, fill=WHITE, outline=INK, width=LW * S)
-    # Plain line-art keys like the gif: four rows, a wide key or two, and the space bar.
-    for row in range(4):
-        y = 12 + row * 16
-        x = 12 + (row % 2) * 5
-        while x < kw - 20:
-            w = 20 if (row == 0 and x < 20) or (row == 2 and x > kw - 50) else 11
-            d.rounded_rectangle(s((x, y, x + w, y + 10)), radius=2 * S, outline=INK, width=2 * S)
-            x += w + 4
-    d.rounded_rectangle(s((62, 76, 150, 85)), radius=2 * S, outline=INK, width=2 * S)
-    return img.rotate(-TILT, expand=True, resample=Image.BICUBIC)
+def body(d):
+    d.ellipse(s((40, 62, 260, 300)), fill=WHITE, outline=INK, width=LW * S)
+    d.ellipse(s((92, 170, 208, 240)), fill=SHADE)          # soft belly shade
+    # Head tuft: three soft curls.
+    for x, h in ((138, 14), (152, 22), (166, 13)):
+        d.arc(s((x - 8, 63 - h, x + 8, 63 + h)), 200, 340, fill=INK, width=LW * S)
+
+
+def face(d, happy):
+    for cx in (116, 184):
+        d.ellipse(s((cx - 26, 104, cx + 26, 156)), outline=INK, width=5 * S)   # glasses
+        if happy:
+            d.arc(s((cx - 11, 124, cx + 11, 142)), 200, 340, fill=INK, width=5 * S)  # ^ ^
+        else:
+            d.ellipse(s((cx - 8, 122, cx + 8, 140)), fill=INK)
+            d.ellipse(s((cx - 4, 124, cx + 1, 129)), fill=WHITE)
+    d.arc(s((138, 118, 162, 134)), 200, 340, fill=INK, width=5 * S)          # bridge
+    for cx in (84, 216):
+        d.ellipse(s((cx - 15, 150, cx + 15, 166)), fill=PINK)                 # blush
+    if happy:   # beak open mid-bonk
+        d.polygon(s((140, 156, 160, 156, 150, 166)), fill=BEAK, outline=INK, width=3 * S)
+        d.polygon(s((143, 168, 157, 168, 150, 176)), fill=BEAK, outline=INK, width=3 * S)
+    else:
+        d.polygon(s((140, 157, 160, 157, 150, 171)), fill=BEAK, outline=INK, width=3 * S)
+
+
+def ledge(d):
+    d.rounded_rectangle(s((-20, LEDGE_Y, W + 20, H + 30)), radius=18 * S, fill=LEDGE, outline=INK, width=LW * S)
+
+
+def wing_up(d, cx):
+    # Raised wing tip, round like a paw, with pink pads on its face.
+    d.ellipse(s((cx - 28, LEDGE_Y - 62, cx + 28, LEDGE_Y - 8)), fill=WHITE, outline=INK, width=LW * S)
+    d.ellipse(s((cx - 11, LEDGE_Y - 36, cx + 11, LEDGE_Y - 20)), fill=PINK)
+    for dx, dy in ((-16, -46), (0, -52), (16, -46)):
+        d.ellipse(s((cx + dx - 5, LEDGE_Y + dy - 5, cx + dx + 5, LEDGE_Y + dy + 5)), fill=PINK)
+
+
+def wing_down(d, cx, side):
+    # Flattened wing squashed on the ledge, with little bonk lines.
+    d.ellipse(s((cx - 36, LEDGE_Y - 18, cx + 36, LEDGE_Y + 20)), fill=WHITE, outline=INK, width=LW * S)
+    for dx in (-14, 2, 18):
+        d.arc(s((cx + dx - 7, LEDGE_Y - 2, cx + dx + 7, LEDGE_Y + 14)), 200, 340, fill=INK, width=3 * S)
+    out = -1 if side == "left" else 1
+    for ang in (-1, 0, 1):
+        x0 = cx + out * (44 + abs(ang) * 2)
+        y0 = LEDGE_Y - 4 + ang * 16
+        line(d, (x0, y0, x0 + out * 14, y0 + ang * 6), 4)
 
 
 def frame(down):
-    img, d = layer(W, H)
-    # A wide white blob peeking over the desk; the desk below hides its lower half.
-    d.ellipse(s((38, 78, 292, 330)), fill=WHITE, outline=INK, width=LW * S)
-    # Head tuft: three little curls on top.
-    for x, h in ((150, 14), (164, 22), (178, 12)):
-        d.arc(s((x - 8, 79 - h, x + 8, 79 + h)), 200, 340, fill=INK, width=LW * S)
-    # Round glasses with dot eyes, pink cheeks, a small beak.
-    for cx in (128, 196):
-        d.ellipse(s((cx - 22, 112, cx + 22, 156)), outline=INK, width=LW * S)
-        d.ellipse(s((cx - 6, 128, cx + 6, 140)), fill=INK)
-        d.ellipse(s((cx - 3, 129, cx + 1, 133)), fill=WHITE)
-    d.arc(s((150, 124, 174, 140)), 200, 340, fill=INK, width=LW * S)
-    for cx in (106, 218):
-        d.ellipse(s((cx - 13, 150, cx + 13, 163)), fill=CHEEK)
-    d.polygon(s((153, 152, 171, 152, 162, 165)), fill=BEAK, outline=INK, width=3 * S)
-
-    # Cut the body off below the desk edge; the desk itself stays see-through so it sits on the window colour.
-    cut = Image.new("L", img.size, 0)
-    ImageDraw.Draw(cut).polygon(s((0, DESK_L, W, DESK_R, W, H, 0, H)), fill=255)
-    img.paste((0, 0, 0, 0), mask=cut)
-    d.line(s((0, DESK_L, W, DESK_R)), fill=INK, width=LW * S)
-
-    kb = keyboard()
-    img.alpha_composite(kb, (22 * S, 172 * S))
-    d.line(s((212, 268, 226, 276, 232, 290)), fill=INK, width=3 * S)
-
-    # Resting wings sit up on the desk edge; the typing one slaps down onto the keys.
-    for side, x in (("left", 66), ("right", 222)):
+    img, d = layer()
+    body(d)
+    face(d, happy=down is not None)
+    ledge(d)
+    for side, cx in (("left", 62), ("right", 238)):
         if side == down:
-            w = mitt(70, 44, 3).rotate(-28 if side == "left" else 28, expand=True, resample=Image.BICUBIC)
-            if side == "left":
-                pos = (34, 168)
-            else:
-                pos = (176, 184)
+            wing_down(d, 84 if side == "left" else 216, side)
         else:
-            w = mitt(48, 38, 2)
-            pos = (x - 24, desk_y(x) - 30)
-        img.alpha_composite(w, (round(pos[0] * S), round(pos[1] * S)))
+            wing_up(d, cx)
     return img.resize((W, H), Image.LANCZOS)
 
 
