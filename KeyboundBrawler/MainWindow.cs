@@ -96,6 +96,8 @@ public sealed class MainWindow : Window
         DrawSpeedChips(cfg);
         DrawStartButton();
         DrawQuickToggles(cfg);
+        if (plugin.AutoPlayer.Enabled && plugin.AutoPlayer.Players < 4 && cfg.CoverMissingPlayers)
+            ImGui.TextDisabled(Loc.T("{0} of 4 players: typing at {1} WPM", plugin.AutoPlayer.Players, plugin.AutoPlayer.EffectiveWpm));
         DrawMgcProgress(cfg);
 
         ImGui.Spacing();
@@ -245,6 +247,16 @@ public sealed class MainWindow : Window
         ImGui.SameLine();
         var skip = cfg.SkipOptionalPunctuation;
         if (ImGui.Checkbox(Loc.T("Skip ? ! - '") + "###skippunct", ref skip)) { cfg.SkipOptionalPunctuation = skip; cfg.Save(); }
+
+        var rush = cfg.RushCastsMs > 0;
+        if (ImGui.Checkbox(Loc.T("Rush casters") + "###rushcasts", ref rush)) { cfg.RushCastsMs = rush ? 500 : 0; cfg.Save(); }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Loc.T("Red and gold labels (bombs, Self-destruct, Needles): drop the current word\nand send theirs within 0.5 s of showing up."));
+        ImGui.SameLine();
+        var cover = cfg.CoverMissingPlayers;
+        if (ImGui.Checkbox(Loc.T("Cover missing players") + "###covermissing", ref cover)) { cfg.CoverMissingPlayers = cover; cfg.Save(); }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(Loc.T("With fewer than 4 players, add {0} WPM for each missing one.", Configuration.PlayerWpm));
     }
 
     // Shows the next reward to save for (cheapest wanted one), then the whole wish list in one line.

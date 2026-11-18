@@ -55,6 +55,11 @@ public static class Loc
         ["Start typing"] = "开始打字",
         ["Start when a match begins"] = "对局开始时自动开始",
         ["Skip ? ! - '"] = "跳过 ? ! - '",
+        ["Rush casters"] = "优先处理读条",
+        ["Red and gold labels (bombs, Self-destruct, Needles): drop the current word\nand send theirs within 0.5 s of showing up."] = "红色和金色标签（炸弹、自爆、千针刺）：放弃当前单词，\n在其出现后 0.5 秒内输入它们的单词。",
+        ["Cover missing players"] = "补足缺席玩家",
+        ["With fewer than 4 players, add {0} WPM for each missing one."] = "玩家不足 4 人时，每缺 1 人增加 {0} WPM。",
+        ["{0} of 4 players: typing at {1} WPM"] = "当前 {0}/4 名玩家：以 {1} WPM 输入",
 
         // MGC progress
         ["{0} MGC. Tick Want on rewards to set a goal."] = "{0} MGC。在奖励里勾选“想要”来设定目标。",
@@ -163,6 +168,8 @@ public static class Loc
         ["No word to type"] = "没有可打的单词",
         ["Opening the input box"] = "正在打开输入框",
         ["Typing \"{0}\""] = "正在输入“{0}”",
+        ["Rushing \"{0}\""] = "正在抢输“{0}”",
+        ["Dropping the word for caster \"{0}\""] = "放弃当前单词，改输读条“{0}”",
         ["Sent \"{0}\""] = "已发送“{0}”",
         ["Clearing the input box"] = "正在清空输入框",
         ["Opening the input box (after a lost key)"] = "正在打开输入框（有按键丢失）",
