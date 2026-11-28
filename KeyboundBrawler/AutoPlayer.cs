@@ -94,12 +94,17 @@ public sealed class AutoPlayer : IDisposable
         Plugin.Framework.Update += OnUpdate;
     }
 
-    public void Dispose() => Plugin.Framework.Update -= OnUpdate;
+    public void Dispose()
+    {
+        Plugin.Framework.Update -= OnUpdate;
+        KeySender.RestoreIme();
+    }
 
     public void Toggle()
     {
         Enabled = !Enabled;
         ResetTyping();
+        if (!Enabled) KeySender.RestoreIme();
         Status = Loc.T(Enabled ? "Waiting for the minigame" : "Off");
     }
 
@@ -120,6 +125,8 @@ public sealed class AutoPlayer : IDisposable
             Words.MatchOver();
             hiddenDumps = 0;
             boxClosed = true;
+            // Match over: give the player their IME back for chat.
+            KeySender.RestoreIme();
             Status = Loc.T("Waiting for the minigame");
             return;
         }

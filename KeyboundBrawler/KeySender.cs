@@ -16,6 +16,59 @@ public static class KeySender
     [DllImport("user32.dll")]
     private static extern bool PostMessageW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
+    // A Chinese/Japanese/Korean IME left in its native mode eats the posted Enter (and the letters),
+    // so nothing is sent until the user presses Shift to switch it to English. Close the IME while we
+    // type and reopen it afterwards. Must run on the game's main thread, which owns the window.
+    [DllImport("imm32.dll")]
+    private static extern IntPtr ImmGetContext(IntPtr hWnd);
+
+    [DllImport("imm32.dll")]
+    private static extern bool ImmReleaseContext(IntPtr hWnd, IntPtr hImc);
+
+    [DllImport("imm32.dll")]
+    private static extern bool ImmGetOpenStatus(IntPtr hImc);
+
+    [DllImport("imm32.dll")]
+    private static extern bool ImmSetOpenStatus(IntPtr hImc, bool open);
+
+    private static bool imeClosedByUs;
+
+    // Closes the window's IME if it is open; remembers to reopen it in RestoreIme.
+    public static void SuppressIme()
+    {
+        var hWnd = Window;
+        if (hWnd == IntPtr.Zero) return;
+        var imc = ImmGetContext(hWnd);
+        if (imc == IntPtr.Zero) return;
+        try
+        {
+            if (!ImmGetOpenStatus(imc)) return;
+            if (ImmSetOpenStatus(imc, false) && !imeClosedByUs)
+            {
+                imeClosedByUs = true;
+                Plugin.Log.Info("[auto] IME was on, turned it off while typing");
+            }
+        }
+        finally
+        {
+            ImmReleaseContext(hWnd, imc);
+        }
+    }
+
+    // Reopens the IME if SuppressIme closed it.
+    public static void RestoreIme()
+    {
+        if (!imeClosedByUs) return;
+        imeClosedByUs = false;
+        var hWnd = Window;
+        if (hWnd == IntPtr.Zero) return;
+        var imc = ImmGetContext(hWnd);
+        if (imc == IntPtr.Zero) return;
+        ImmSetOpenStatus(imc, true);
+        ImmReleaseContext(hWnd, imc);
+        Plugin.Log.Info("[auto] IME turned back on");
+    }
+
     private static IntPtr window;
 
     private static IntPtr Window
@@ -31,6 +84,7 @@ public static class KeySender
     public static void Char(char c)
     {
         GameInput.MarkActive();
+        SuppressIme();
         PostMessageW(Window, WmChar, c, 1);
     }
 
@@ -47,6 +101,7 @@ public static class KeySender
     private static void Key(int vk, int scanCode)
     {
         GameInput.MarkActive();
+        SuppressIme();
         PostMessageW(Window, WmKeyDown, vk, 1 | scanCode << 16);
         PostMessageW(Window, WmKeyUp, vk, unchecked((int)0xC0000001) | scanCode << 16);
     }
